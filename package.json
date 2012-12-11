@@ -1,0 +1,12 @@
+{
+  "name": "stuff",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "start": "node app"
+  },
+  "dependencies": {
+    "lodash": "0.9.1",
+    "async": "0.1.18"
+  }
+}
