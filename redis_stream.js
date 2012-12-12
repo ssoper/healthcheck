@@ -1,46 +1,46 @@
 var Stream = require('stream').Stream,
     util = require('util')
 
-function RedisStream() {
-  function Public() {
-    Stream.call(this);
-    this.writable = true;
+// function RedisStream() {
+//   function Public() {
+//     Stream.call(this);
+//     this.writable = true;
+// 
+//     this.write = function(data) {
+//       console.log(data.toString('utf8'))
+//     };
+// 
+//     this.end = function(data) {
+//       console.log(data.toString('utf8'))
+// 
+//       this.flush();
+//       this.close();
+//     };
+// 
+//     this.destroy = function() {
+//       this.flush();
+//       this.close();
+//     };
+// 
+//     this.flush = function() {
+//       console.log('flush?')
+//     };
+// 
+//     this.close = function() {
+//       var self = this;
+//       console.log('closed')
+//       // process.nextTick(function() {
+//       //   self.emit('close', totalCount, totalSize, totalChunks);
+//       // });
+//     };
+//   }
+// 
+//   util.inherits(Public, Stream);
+//   var object = new Public();
+//   return object;
+// }
 
-    this.write = function(data) {
-      console.log(data.toString('utf8'))
-    };
-
-    this.end = function(data) {
-      console.log(data.toString('utf8'))
-
-      this.flush();
-      this.close();
-    };
-
-    this.destroy = function() {
-      this.flush();
-      this.close();
-    };
-
-    this.flush = function() {
-      console.log('flush?')
-    };
-
-    this.close = function() {
-      var self = this;
-      console.log('closed')
-      // process.nextTick(function() {
-      //   self.emit('close', totalCount, totalSize, totalChunks);
-      // });
-    };
-  }
-
-  util.inherits(Public, Stream);
-  var object = new Public();
-  return object;
-}
-
-var redis = require('redis'),
+var redis = require('./node_modules/winston-redis/node_modules/redis'),
     winston = require('winston'),
     common = require('winston/lib/winston/common'),
     util = require('util'),
@@ -62,7 +62,6 @@ var Redis = winston.transports.Redis = function (options) {
   this.json      = options.json !== false;
   this.length    = options.length    || 200;
   this.container = options.container || 'winston';
-  this.timestamp = options.timestamp || true;
   this.channel   = options.channel;
 
   if (options.auth) {
@@ -89,38 +88,40 @@ var Redis = winston.transports.Redis = function (options) {
   }
 };
 
-//
-// Inherit from `winston.Transport`.
-//
 util.inherits(Redis, winston.Transport);
 util.inherits(Redis, Stream);
 
+var parse = function(entry) {
+  // strip control char
+  if (entry.match(/^[info|warn|debug|error]/i)) {
+    return {
+      level: logMsg.split(' ')[0].trim(),
+      msg: logMsg.split(' ').slice(2)
+    }
+  } else {
+    return {
+      level: 'error',
+      msg: entry
+    }
+  }
+}
+
 Redis.prototype.write = function(data) {
-  console.log(data.toString('utf8'))
+  var parsed = parse(data.toString('utf8'));
+  this.log(parsed.level, parsed.msg)
 };
 
-this.end = function(data) {
-  console.log(data.toString('utf8'))
-
-  this.flush();
+Redis.prototype.end = function(data) {
+  this.write(data)
   this.close();
 };
 
 this.destroy = function() {
-  this.flush();
   this.close();
 };
 
-this.flush = function() {
-  console.log('flush?')
-};
-
 this.close = function() {
-  var self = this;
-  console.log('closed')
-  // process.nextTick(function() {
-  //   self.emit('close', totalCount, totalSize, totalChunks);
-  // });
+  // do nothing
 };
 
 //
@@ -146,7 +147,7 @@ Redis.prototype.log = function (level, msg, meta, callback) {
       level: level,
       message: msg,
       meta: meta,
-      timestamp: self.timestamp,
+      timestamp: true,
       json: self.json
     });
 
