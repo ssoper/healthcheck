@@ -57,7 +57,7 @@
 
   for (i = _i = 0, _ref = numWorkers - 1; 0 <= _ref ? _i <= _ref : _i >= _ref; i = 0 <= _ref ? ++_i : --_i) {
     port = startPort + i;
-    children.push(child_monitor.spawnMonitoredChild('/Users/ssoper/workspace/argus/apps/api', "sfs_socket_" + port, healthCheck, {
+    children.push(child_monitor.spawnMonitoredChild('/Users/sopers/workspace/argus/apps/api', "sfs_socket_" + port, healthCheck, {
       DEBUG: true
     }));
   }
