@@ -92,11 +92,10 @@ util.inherits(Redis, winston.Transport);
 util.inherits(Redis, Stream);
 
 var parse = function(entry) {
-  // strip control char
-  if (entry.match(/^[info|warn|debug|error]/i)) {
+  if (entry.match(/;4m[info|warn|debug|error]/i)) {
     return {
-      level: logMsg.split(' ')[0].trim(),
-      msg: logMsg.split(' ').slice(2)
+      level: entry.match(/;4m([a-z]{4,5})/i)[1].toLowerCase(),
+      msg: entry.split(' ').slice(3).join(' ').trim()
     }
   } else {
     return {
@@ -107,20 +106,25 @@ var parse = function(entry) {
 }
 
 Redis.prototype.write = function(data) {
+  if (!data)
+    return;
   var parsed = parse(data.toString('utf8'));
   this.log(parsed.level, parsed.msg)
 };
 
 Redis.prototype.end = function(data) {
+  console.log('ended')
   this.write(data)
   this.close();
 };
 
-this.destroy = function() {
+Redis.prototype.destroy = function() {
+  console.log('destroyed')
   this.close();
 };
 
-this.close = function() {
+Redis.prototype.close = function() {
+  console.log('closed')
   // do nothing
 };
 
