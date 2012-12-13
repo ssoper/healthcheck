@@ -41,6 +41,11 @@ console.log(logger);
       this.healthCheckTimeout = null;
       this.bounceTimeout = null;
       this.expectedExit = false;
+
+      this.respawns = 0;
+      this.respawnsMax = 5;
+      this.respawnTimer = 0;
+      this.respawnTimerMax = 5000;
     }
 
     MonitoredChild.prototype.bounce = function() {
@@ -61,6 +66,7 @@ console.log(logger);
     MonitoredChild.prototype.delayedHealthCheck = function() {
       var _this = this;
       return this.healthCheckTimeout = delayTimeout(5000, function() {
+        _this.respawns = 0;
         var start;
         start = new Date();
         return _this.healthCheck(_this.port, function(healthy) {
@@ -77,6 +83,19 @@ console.log(logger);
 
     MonitoredChild.prototype.respawn = function() {
       var _this = this;
+
+      if (this.respawns == 0) {
+        this.respawns++;
+        this.respawnTimer = new Date();
+      } else {
+        this.respawns++;
+        if (this.respawns > this.respawnsMax &&
+            (new Date - this.respawnTimer) < this.respawnTimerMax) {
+          console.error('Too many attempted restarts, exiting');
+          process.exit(1);
+        }
+      }
+
       this.currentChild = child_process.spawn(process.execPath, [this.script], {
         env: _.extend(this.environmentVariables, process.env)
       });
