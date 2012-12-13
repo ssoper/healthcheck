@@ -1,14 +1,11 @@
 {
-  "name": "stuff",
+  "name": "node-monitor",
   "version": "0.0.1",
   "private": true,
-  "scripts": {
-    "start": "node app"
-  },
   "dependencies": {
     "lodash": "0.9.x",
     "async": "0.1.x",
-    "winston": "0.6.x",
-    "winston-redis": "0.2.x"
+    "redis": "0.8.x",
+    "moment": "1.7.x"
   }
 }
