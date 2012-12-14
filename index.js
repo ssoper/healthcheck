@@ -1,7 +1,16 @@
+/* 
+ * Launch node apps using node-harness and capture log output to send to Redis. 
+ * Logs must output JSON. The winston logger is a great option.
+ *
+ * Inspired by http://blog.argteam.com/coding/hardening-nodejs-production-process-supervisor/
+ *
+ */
+
 var _ = require('lodash'),
+    fs = require('fs'),
     async = require('async'),
     child_process = require('child_process'),
-    Logger = require('./redis_logger'),
+    Logger = require('./lib/redis_logger'),
     bounceInterval = 60 * 1000,
     bounceWait = bounceInterval + 30 * 1000,
     healthCheckInterval = 60 * 1000;
@@ -10,11 +19,11 @@ var delayTimeout = function(ms, func) {
   return setTimeout(func, ms);
 };
 
-function MonitoredChild(script, port, healthCheck, environmentVariables, redisOpts) {
+function MonitoredChild(script, port, healthCheck, envs, redis) {
   this.script = script;
   this.port = port;
   this.healthCheck = healthCheck;
-  this.environmentVariables = environmentVariables;
+  this.environmentVariables = envs;
   this.currentChild = null;
   this.healthCheckTimeout = null;
   this.bounceTimeout = null;
@@ -25,7 +34,11 @@ function MonitoredChild(script, port, healthCheck, environmentVariables, redisOp
   this.respawnTimer = 0;
   this.respawnTimerMax = 5000;
 
-  this.infoLogger = new Logger(redisOpts);
+  _.extend(redis, { container: redis.name + ':info' });
+  this.infoLogger = new Logger(redis);
+
+  _.extend(redis, { container: redis.name + ':errors' });  
+  this.errorLogger = new Logger(redis);
 }
 
 MonitoredChild.prototype.bounce = function() {
@@ -84,8 +97,8 @@ MonitoredChild.prototype.respawn = function() {
     pid: this.currentChild.pid
   });
 
-  this.currentChild.stdout.pipe(logger);
-  this.currentChild.stderr.pipe(logger);
+  this.currentChild.stdout.pipe(this.infoLogger);
+  this.currentChild.stderr.pipe(this.errorLogger);
 
   this.currentChild.on('exit', function(code, signal) {
     if (self.healthCheckTimeout != null) {
@@ -113,9 +126,16 @@ exports.bounceChildren = function(monitoredChildren, callback) {
   }, callback);
 };
 
-exports.spawnMonitoredChild = function(script, port, healthCheck, envs, redisOpts) {
-  var ret;
-  ret = new MonitoredChild(script, port, healthCheck, envs, redisOpts || {});
+exports.spawnMonitoredChild = function(script, port, healthCheck, opts) {
+  if (!fs.existsSync(script)) {
+    console.log('Path "' + script + '" does not exist');
+    process.exit(1);
+  }
+
+  var envs = opts.envs || {};
+  var redis = opts.redis || {};
+
+  var ret = new MonitoredChild(script, port, healthCheck, envs, redis);
   ret.respawn();
   return ret;
 };

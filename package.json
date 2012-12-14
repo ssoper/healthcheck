@@ -1,7 +1,7 @@
 {
-  "name": "node-monitor",
+  "name": "wapo-node-harness",
   "version": "0.0.1",
-  "private": true,
+  "private": true
   "dependencies": {
     "lodash": "0.9.x",
     "async": "0.1.x",

@@ -1,5 +1,6 @@
 var net = require('net'),
-    child_monitor = require('./child_monitor'),
+    path = require('path'),
+    child_monitor = require('../index'),
     numWorkers = 2,
     startPort = 31337,
     children = [];
@@ -19,9 +20,14 @@ for (var i = 0; i < numWorkers; i++) {
   port = startPort + i;
   var cmd = process.env.CMD;
   var procId = path.basename(cmd) + '_' + port;
-  children.push(child_monitor.spawnMonitoredChild('/Users/sopers/workspace/argus/apps/api', procId, healthCheck, {
-    PORT: port,
-    DEBUG: true
+
+  children.push(child_monitor.spawnMonitoredChild(cmd, procId, healthCheck, {
+    envs: {
+      PORT: port
+    },
+    redis: {
+      name: 'example'
+    }
   }));
 }
 
